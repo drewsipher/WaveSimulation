@@ -17,8 +17,12 @@ class Visualizer:
         self.audio_sources = []
         self.barriers = []
 
+        # Define fixed min and max values for the color scale
+        self.min_value = -1.0
+        self.max_value = 1.0
+
     def update(self):
-        self.img.setImage(self.grid.grid.T, levels=(np.min(self.grid.grid), np.max(self.grid.grid)))
+        self.img.setImage(self.grid.grid.T, levels=(self.min_value, self.max_value))
         QtWidgets.QApplication.processEvents()  # Process events to keep the UI responsive
 
     def show(self):
