@@ -18,16 +18,18 @@ To get started with WaveSimulation, follow these steps:
    git clone git@github.com:drewsipher/WaveSimulation.git
    cd WaveSimulation
    ```
-Create and activate a virtual environment:
+   
+2. **Create and activate a virtual environment**:
     ```sh
     python -m venv .venv
     .venv\Scripts\activate  # On Windows
     source .venv/bin/activate  # On macOS/Linux
     ```
-Install the dependencies:
+3. **Install the dependencies**:
     ```sh
     pip install -r requirements.txt
     ```
+    
 🎮 Usage
 Run the simulation with the following command:
     ```sh
