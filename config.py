@@ -6,11 +6,11 @@ MEDIUM_PROPERTIES = {
 
 GRID_SETTINGS = {
     'size': 500,
-    'spacing': 0.1  # meters
+    'spacing': 0.01  # meters
 }
 
 WAVE_PARAMETERS = {
-    'time_step': 0.0002,  # seconds
+    'time_step': 0.0005,  # seconds
     'frequency': 440,    # Hz
     'wavelength': 0.78   # meters
 }

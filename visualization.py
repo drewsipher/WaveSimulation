@@ -17,6 +17,9 @@ class Visualizer:
         self.audio_sources = []
         self.barriers = []
 
+        # Disable mouse panning and zooming
+        self.plot.setMouseEnabled(x=False, y=False)
+
         # Define fixed min and max values for the color scale
         self.min_value = -1.0
         self.max_value = 1.0
@@ -28,8 +31,7 @@ class Visualizer:
     def show(self):
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.update)
-        self.timer.start(0)  # Start the timer with no delay
-
+        self.timer.start(16)  # Start the timer with no delay
 
     def close(self):
         self.closed = True

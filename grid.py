@@ -7,6 +7,5 @@ class SimulationGrid:
         self.grid = np.zeros((self.size, self.size))
         self.prev_grid = np.zeros_like(self.grid)
 
-    def update(self, new_values):
-        self.prev_grid = self.grid.copy()
-        self.grid = new_values
+    def update(self):
+        np.copyto(self.prev_grid, self.grid)
