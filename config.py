@@ -12,7 +12,9 @@ GRID_SETTINGS = {
 WAVE_PARAMETERS = {
     'time_step': 0.0005,  # seconds
     'frequency': 440,    # Hz
-    'wavelength': 0.78   # meters
+    'wavelength': 0.78,   # meters
+    'damping': 0.9999  # Add damping factor here
 }
+
 
 NUM_TIME_STEPS = 1000

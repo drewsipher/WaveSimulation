@@ -6,11 +6,15 @@ class WaveSimulation:
         self.speed = medium_properties['speed_of_sound']
         self.time_step = wave_params['time_step']
         self.coeff = (self.speed ** 2) * (self.time_step ** 2)
+        self.damping = wave_params.get('damping', 0.99)  # Damping factor, default to 0.99
 
     def update(self):
         # Compute wave equation update (simplified finite difference)
         laplacian = self.compute_laplacian(self.grid.grid)
         new_grid = 2 * self.grid.grid - self.grid.prev_grid + self.coeff * laplacian
+        
+        # Apply damping
+        new_grid *= self.damping
         
         # Apply reflective boundary conditions
         new_grid[0, :] = new_grid[1, :]  # Top boundary
