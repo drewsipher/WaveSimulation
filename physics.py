@@ -48,7 +48,7 @@ class WaveSimulation:
         self.grid.grid = new_grid
 
     def compute_laplacian(self, grid):
-         """
+        """
         Compute discrete Laplacian using 5-point stencil method.
         
         Args:
