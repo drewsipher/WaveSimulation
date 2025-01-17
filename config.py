@@ -16,5 +16,10 @@ WAVE_PARAMETERS = {
     'damping': 0.9999  # Add damping factor here
 }
 
-
-NUM_TIME_STEPS = 1000
+# Add density configurations if needed
+DENSITY_SETTINGS = {
+    'default_density': 1.0,
+    'density_variations': [
+        {'x_range': (100, 200), 'y_range': (100, 200), 'density': 2.0},
+    ]
+}

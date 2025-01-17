@@ -8,11 +8,12 @@ def main():
     print("Loading configuration...")
     medium_properties = config.MEDIUM_PROPERTIES
     grid_settings = config.GRID_SETTINGS
+    density_settings = config.DENSITY_SETTINGS
     wave_params = config.WAVE_PARAMETERS
 
     # Initialize simulation grid
     print("Initializing simulation grid...")
-    grid = SimulationGrid(grid_settings)
+    grid = SimulationGrid(grid_settings,density_settings)
     print("Initial grid values:")
     print(grid.grid)
 
