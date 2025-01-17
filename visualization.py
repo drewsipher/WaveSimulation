@@ -20,12 +20,30 @@ class Visualizer:
         # Disable mouse panning and zooming
         self.plot.setMouseEnabled(x=False, y=False)
 
-        # Define fixed min and max values for the color scale
+        # Define fixed min and max values for the wave amplitude
         self.min_value = -1.0
         self.max_value = 1.0
 
+        # Normalize density for tinting
+        self.normalized_density = self.grid.density / (self.grid.density.max())
+
     def update(self):
-        self.img.setImage(self.grid.grid.T, levels=(self.min_value, self.max_value))
+        
+        # Create a base color map for wave amplitude
+        wave_image = self.grid.grid.T
+        wave_image_normalized = (wave_image - self.min_value) / (self.max_value - self.min_value)
+        wave_rgb = pg.colormap.get('viridis').map(wave_image_normalized, mode='float')
+
+        # Apply tint based on density
+        tint = np.stack([self.normalized_density]*4, axis=2)  # Create RGB tint
+        
+        tinted_wave = wave_rgb * tint
+
+        # Convert to 8-bit image
+        tinted_wave_8bit = (tinted_wave * 255).astype(np.uint8)
+
+        # Update the image
+        self.img.setImage(tinted_wave_8bit, levels=(0, 255))
         QtWidgets.QApplication.processEvents()  # Process events to keep the UI responsive
 
     def show(self):

@@ -1,11 +1,15 @@
 # config.py
 # Configuration settings for the simulation
+
+# Define a variable for the grid size
+GRID_SIZE = 500
+
 MEDIUM_PROPERTIES = {
     'speed_of_sound': 343  # meters per second
 }
 
 GRID_SETTINGS = {
-    'size': 500,
+    'size': GRID_SIZE,
     'spacing': 0.01  # meters
 }
 
