@@ -1,0 +1,69 @@
+# Ignore build directories
+/build/
+/CMakeFiles/
+/CMakeCache.txt
+/Makefile
+/CMakeScripts/
+/Testing/
+/CTestTestfile.cmake
+/cmake_install.cmake
+
+# Ignore Visual Studio Code settings
+/.vscode/
+
+# Ignore Visual Studio files
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.sln
+*.suo
+*.user
+*.userosscache
+*.userprefs
+*.ncb
+*.opensdf
+*.sdf
+*.ipch
+*.pdb
+*.obj
+*.tlog
+*.lastbuildstate
+*.idb
+*.dir
+*.log
+*.sbr
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+
+# Ignore generated files
+*.exe
+*.dll
+*.lib
+*.so
+*.a
+*.out
+*.o
+*.i
+*.ii
+*.gch
+*.pyc
+*.pyo
+*.pyd
+*.class
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.swp
+*.DS_Store
+*.Thumbs.db
+
+# Ignore OpenCV build directory
+/opencv/build/
+
+# Ignore other IDE specific files
+.idea/
+*.iml
+*.ipr
+*.iws
