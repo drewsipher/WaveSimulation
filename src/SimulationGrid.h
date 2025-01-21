@@ -2,6 +2,7 @@
 #define GRID_H
 
 #include <vector>
+#include <opencv2/opencv.hpp>
 
 class SimulationGrid {
 public:
@@ -11,28 +12,35 @@ public:
         double density;
     };
 
-    SimulationGrid(const int& size = 500);
-    void update();
-    void printGrid() const;
-    void setDensityArea(const DensityVariation& variation);
-
-    int size() const { return grid_size; }
-
-    std::vector<std::vector<double>> grid;
-    std::vector<std::vector<double>> prev_grid;
-    std::vector<std::vector<double>> density;
-    std::vector<std::vector<double>> damping_mask;
-
+    SimulationGrid(const int& width = 500, const int& height = 500);
+    // SimulationGrid(const SimulationGrid& other); // Copy constructor
+    // SimulationGrid& operator=(const SimulationGrid& other); // Copy assignment operator
+    void SetDensityArea(const DensityVariation& variation);
     
+    cv::Mat_<double> base;
+    cv::Mat_<double> density;
+    cv::Mat_<double> damping_mask;
 
+    int Width() const { return _width; }
+    int Height() const { return _height; }
+
+    // Overload the () operator for non-const access
+    double& operator()(int row, int col) {
+        return base(row, col);
+    }
+
+    // Overload the () operator for const access
+    const double& operator()(int row, int col) const {
+        return base(row, col);
+    }
 
 private:
-    // void setDensityAreaImpl(const DensityVariation& variation);
-    void createDampingMask();
+    void CreateDampingMask();
 
-    int grid_size;
+    int _width;
+    int _height;
     double spacing = 0.01;
-    int damping_thickness = 25;
+    int damping_thickness = 15;
     double default_density = 1.0;
 
     std::vector<DensityVariation> density_variations;

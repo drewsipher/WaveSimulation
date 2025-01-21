@@ -2,18 +2,18 @@
 #define VISUALIZER_H
 
 #include <opencv2/opencv.hpp>
-#include "SimulationGrid.h"
+#include "Physics.h"
 
 class Visualizer {
 public:
-    Visualizer(SimulationGrid& grid);
+    Visualizer(Physics& physics);
     void show();
     void update();
     void close();
     bool isClosed() const;
 
 private:
-    SimulationGrid& grid;
+    Physics& _physics;
     cv::Mat image;
     bool closed;
     double min_value;
