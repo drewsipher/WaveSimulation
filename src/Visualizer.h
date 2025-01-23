@@ -2,6 +2,9 @@
 #define VISUALIZER_H
 
 #include <opencv2/opencv.hpp>
+#include <GLFW/glfw3.h>
+#include "imgui.h"
+
 #include "Physics.h"
 
 class Visualizer {
@@ -26,6 +29,11 @@ private:
     void applyTint();
     void onMouse(int event, int x, int y, int flags);
     static void onMouseWrapper(int event, int x, int y, int flags, void* userdata);
+
+    GLFWwindow* window;
+    ImVec4 clear_color; 
+        
+
 };
 
 #endif // VISUALIZER_H

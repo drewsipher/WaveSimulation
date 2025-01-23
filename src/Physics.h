@@ -16,8 +16,7 @@ private:
     void computeLaplacian();
 
     double base_speed = 343.0;
-    double time_step = 0.0005;
-    double damping = 0.9999;
+    double time_step = 0.001;
     cv::Mat_<double> _speed;
     cv::Mat_<double> _coeff;
     cv::Mat_<double> _laplacian;

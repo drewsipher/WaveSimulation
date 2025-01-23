@@ -23,9 +23,24 @@ if(NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV not found!")
 endif()
 
+# Find GLFW package
+find_package(glfw3 REQUIRED)
+if(NOT glfw3_FOUND)
+    message(FATAL_ERROR "GLFW not found!")
+endif()
+
+# Find OpenGL package
+find_package(OpenGL REQUIRED)
+if(NOT OPENGL_FOUND)
+    message(FATAL_ERROR "OpenGL not found!")
+endif()
+
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS})
+include_directories(${GLFW_INCLUDE_DIRS})
+include_directories(${OPENGL_INCLUDE_DIR})
 include_directories(src)
+include_directories(imgui)
 
 # Source files
 set(SOURCES
@@ -33,10 +48,17 @@ set(SOURCES
     src/SimulationGrid.cpp
     src/Physics.cpp
     src/Visualizer.cpp
+    imgui/imgui.cpp
+    imgui/imgui_draw.cpp
+    imgui/imgui_widgets.cpp
+    imgui/imgui_demo.cpp
+    imgui/imgui_tables.cpp
+    imgui/backends/imgui_impl_opengl3.cpp
+    imgui/backends/imgui_impl_glfw.cpp
 )
 
 # Add executable
 add_executable(AudioWaveSim ${SOURCES})
 
-# Link OpenCV libraries
-target_link_libraries(AudioWaveSim ${OpenCV_LIBS})
+# Link libraries
+target_link_libraries(AudioWaveSim ${OpenCV_LIBS} glfw OpenGL::GL)

@@ -33,7 +33,6 @@ void Physics::update() {
     for (int i = 0; i < grid.Height(); ++i) {
         for (int j = 0; j < grid.Width(); ++j) {
             _tempGridVals(i,j) = 2 * grid(i,j) - _previousGrid(i,j) + _coeff(i,j) * _laplacian(i,j);
-            _tempGridVals(i,j) *= damping;
             _tempGridVals(i,j) *= grid.damping_mask(i,j);
         }
     }
