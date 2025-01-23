@@ -29,9 +29,17 @@ private:
     void applyTint();
     void onMouse(int event, int x, int y, int flags);
     static void onMouseWrapper(int event, int x, int y, int flags, void* userdata);
+    std::string loadShaderSource(const char* filePath);
+    GLuint compileShader(GLenum type, const char* filePath);
+    GLuint createShaderProgram();
+    void createQuad(); 
 
     GLFWwindow* window;
     ImVec4 clear_color; 
+    GLuint shaderProgram;
+    GLuint VAO, VBO;
+
+    
         
 
 };

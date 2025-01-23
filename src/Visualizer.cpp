@@ -1,7 +1,12 @@
+#include <GL/glew.h>
 #include "Visualizer.h"
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <iostream>
+#include <fstream>
+#include <sstream>
+
 #include "imgui.h"
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_glfw.h"
@@ -24,6 +29,13 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
+    // Initialize GLEW
+    GLenum err = glewInit();
+    if (err != GLEW_OK) {
+        std::cerr << "Failed to initialize GLEW: " << glewGetErrorString(err) << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
     // Initialize ImGui
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -34,6 +46,85 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
 
     image = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
     applyTint();
+
+    shaderProgram = createShaderProgram();
+    createQuad();
+}
+
+std::string Visualizer::loadShaderSource(const char* filePath) {
+    std::ifstream shaderFile(filePath);
+    if (!shaderFile.is_open()) {
+        std::cerr << "Failed to open shader file: " << filePath << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    std::stringstream shaderStream;
+    shaderStream << shaderFile.rdbuf();
+    shaderFile.close();
+    return shaderStream.str();
+}
+
+GLuint Visualizer::compileShader(GLenum type, const char* filePath) {
+    std::string shaderSource = loadShaderSource(filePath);
+    const char* source = shaderSource.c_str();
+    GLuint shader = glCreateShader(type);
+    glShaderSource(shader, 1, &source, NULL);
+    glCompileShader(shader);
+
+    GLint success;
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
+    }
+    return shader;
+}
+
+void Visualizer::createQuad() {
+    float vertices[] = {
+        // Positions
+        -1.0f,  1.0f, // Top-left
+         1.0f,  1.0f, // Top-right
+         1.0f, -1.0f, // Bottom-right
+        -1.0f, -1.0f  // Bottom-left
+    };
+
+    glGenVertexArrays(1, &VAO);
+    glGenBuffers(1, &VBO);
+
+    glBindVertexArray(VAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
+}
+
+GLuint Visualizer::createShaderProgram() {
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, "../shaders/SimpleVert.glsl");
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, "../shaders/SimpleFrag.glsl");
+
+    GLuint shaderProgram = glCreateProgram();
+    glAttachShader(shaderProgram, vertexShader);
+    glAttachShader(shaderProgram, fragmentShader);
+    glLinkProgram(shaderProgram);
+
+    GLint success;
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    glDeleteShader(vertexShader);
+    glDeleteShader(fragmentShader);
+
+    return shaderProgram;
 }
 
 void Visualizer::applyTint() {
@@ -77,47 +168,38 @@ void Visualizer::update() {
     glViewport(0, 0, display_w, display_h);
     glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
+
+    // Use shader program and draw quad
+    glUseProgram(shaderProgram);
+    glBindVertexArray(VAO);
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindVertexArray(0);
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    // cv::imshow("Wave Simulation", tinted_wave);
-    // int key = cv::waitKey(1);
-    // if (key == 27) {  // 27 is the ASCII code for the ESC key
-    //     close();
-    // } else if (key == 'p') {
-    //     cv::waitKey(0);  // Pause the simulation until any key is pressed
-    // }
 }
 
 void Visualizer::show() {
-    cv::namedWindow("Wave Simulation");
-    cv::setMouseCallback("Wave Simulation", onMouseWrapper, this);
     // Run simulation
     std::cout << "Starting simulation loop..." << std::endl;
     while (!isClosed()) {
         update();
+        glfwPollEvents(); // Poll for and process events
     }
+    close(); // Ensure resources are cleaned up when the loop exits
 }
 
 void Visualizer::close() {
-    closed = true;
-    cv::destroyWindow("Wave Simulation");
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    if (!closed) {
+        closed = true;
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        glfwDestroyWindow(window);
+        glfwTerminate();
+    }
 }
 
 bool Visualizer::isClosed() const {
-    return closed;
-}
-
-void Visualizer::onMouse(int event, int x, int y, int) {
-    if (event == cv::EVENT_LBUTTONDOWN) {
-        audio_sources.emplace_back(x, y);
-        _physics.AddPing(x,y, 1.0);  // Example value for audio source
-    } 
-}
-
-void Visualizer::onMouseWrapper(int event, int x, int y, int flags, void* userdata) {
-    Visualizer* self = static_cast<Visualizer*>(userdata);
-    self->onMouse(event, x, y, flags);
+    return closed || glfwWindowShouldClose(window);
 }

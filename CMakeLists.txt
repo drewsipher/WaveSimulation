@@ -35,10 +35,17 @@ if(NOT OPENGL_FOUND)
     message(FATAL_ERROR "OpenGL not found!")
 endif()
 
+# Find GLEW package
+find_package(GLEW REQUIRED)
+if(NOT GLEW_FOUND)
+    message(FATAL_ERROR "GLEW not found!")
+endif()
+
 # Include directories
 include_directories(${OpenCV_INCLUDE_DIRS})
 include_directories(${GLFW_INCLUDE_DIRS})
 include_directories(${OPENGL_INCLUDE_DIR})
+include_directories(${GLEW_INCLUDE_DIRS})
 include_directories(src)
 include_directories(imgui)
 
@@ -61,4 +68,4 @@ set(SOURCES
 add_executable(AudioWaveSim ${SOURCES})
 
 # Link libraries
-target_link_libraries(AudioWaveSim ${OpenCV_LIBS} glfw OpenGL::GL)
+target_link_libraries(AudioWaveSim ${OpenCV_LIBS} glfw OpenGL::GL GLEW::GLEW)
