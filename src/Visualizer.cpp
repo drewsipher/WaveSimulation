@@ -40,12 +40,15 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
     image = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
     applyTint();
+
 
     shaderProgram = createShaderProgram();
     createQuad();
@@ -177,6 +180,7 @@ void Visualizer::update() {
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+    glfwSwapBuffers(window);
 }
 
 void Visualizer::show() {
@@ -197,6 +201,11 @@ void Visualizer::close() {
         ImGui::DestroyContext();
         glfwDestroyWindow(window);
         glfwTerminate();
+
+        // Cleanup OpenGL resources
+        glDeleteVertexArrays(1, &VAO);
+        glDeleteBuffers(1, &VBO);
+        glDeleteProgram(shaderProgram);
     }
 }
 
