@@ -1,11 +1,11 @@
 #include <GL/glew.h>
-#include "Visualizer.h"
-
 #include <opencv2/opencv.hpp>
-#include <opencv2/highgui.hpp>
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <thread>
+
+#include "Visualizer.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_opengl3.h"
@@ -46,12 +46,39 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 130");
 
-    image = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
-    applyTint();
-
-
     shaderProgram = createShaderProgram();
     createQuad();
+
+    createFramebuffer();
+}
+
+void Visualizer::createFramebuffer() {
+    glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    // Create a texture to attach to the framebuffer
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+    cv::Mat blank = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
+    blank.at<cv::Vec3b>(_physics.grid.Height()/2, _physics.grid.Width()/2) = cv::Vec3b(255, 255, 255);
+    cv::circle(blank, cv::Point(_physics.grid.Width()/2, _physics.grid.Height()/2), 100, cv::Scalar(255, 255, 255), -1);
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RGB, GL_UNSIGNED_BYTE, blank.data);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureID, 0);
+
+    // Create a renderbuffer object for depth and stencil attachment (optional)
+    GLuint RBO;
+    glGenRenderbuffers(1, &RBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _physics.grid.Width(), _physics.grid.Height());
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
+        std::cerr << "Framebuffer is not complete!" << std::endl;
+    }
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 std::string Visualizer::loadShaderSource(const char* filePath) {
@@ -130,29 +157,16 @@ GLuint Visualizer::createShaderProgram() {
     return shaderProgram;
 }
 
-void Visualizer::applyTint() {
-    tint = cv::Mat(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3, cv::Scalar(255, 255, 255));
-    for (int i = 0; i < _physics.grid.Height(); ++i) {
-        for (int j = 0; j < _physics.grid.Width(); ++j) {
-            double density = _physics.grid.density[i][j];
-            tint.at<cv::Vec3b>(i, j) = cv::Vec3b(255 * static_cast<int>(density), 255 * static_cast<int>(density), 255 * static_cast<int>(density));
-        }
-    }
-}
-
 void Visualizer::update() {
     _physics.update();
 
-    cv::Mat wave_image = _physics.grid.base.clone();
-    cv::normalize(wave_image, wave_image, 0, 255, cv::NORM_MINMAX);
-    wave_image.convertTo(wave_image, CV_8UC1);
-    cv::Mat wave_image_8UC3;
-    cv::cvtColor(wave_image, wave_image_8UC3, cv::COLOR_GRAY2BGR);
+    // Bind the framebuffer and render to it
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glViewport(0, 0, _physics.grid.Width(), _physics.grid.Height());
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    cv::applyColorMap(wave_image_8UC3, image, cv::COLORMAP_VIRIDIS);
-
-    cv::Mat tinted_wave = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
-    cv::multiply(image, tint, tinted_wave, 1.0 / 255.0);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Start the ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -174,7 +188,12 @@ void Visualizer::update() {
 
     // Use shader program and draw quad
     glUseProgram(shaderProgram);
+
+    glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+    
     glBindVertexArray(VAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, textureID); // Bind the framebuffer texture
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     glBindVertexArray(0);
 

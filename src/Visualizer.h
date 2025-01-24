@@ -33,11 +33,18 @@ private:
     GLuint compileShader(GLenum type, const char* filePath);
     GLuint createShaderProgram();
     void createQuad(); 
+    void createFramebuffer();
+
+    
 
     GLFWwindow* window;
     ImVec4 clear_color; 
     GLuint shaderProgram;
     GLuint VAO, VBO;
+    GLuint framebufferTexture;
+    GLuint FBO;
+    GLuint textureID;
+
 
     
         
