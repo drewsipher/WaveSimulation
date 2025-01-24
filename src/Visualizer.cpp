@@ -161,12 +161,12 @@ void Visualizer::update() {
     _physics.update();
 
     // Bind the framebuffer and render to it
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    glViewport(0, 0, _physics.grid.Width(), _physics.grid.Height());
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    // glViewport(0, 0, _physics.grid.Width(), _physics.grid.Height());
+    // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     // Start the ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
