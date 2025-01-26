@@ -33,14 +33,15 @@ private:
     GLuint compileShader(GLenum type, const char* filePath);
     GLuint createShaderProgram();
     void createQuad(); 
-    void createFramebuffer();
+    void createTextures();
     GLuint createComputeShader(const char* filePath);
+    void checkOpenGLError(const std::string& errorMessage);
 
 
     
 
     GLFWwindow* window;
-    ImVec4 clear_color; 
+    ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
     GLuint shaderProgram;
     GLuint waveShaderProgram;
     GLuint VAO, VBO, EBO;

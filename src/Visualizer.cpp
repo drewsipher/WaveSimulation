@@ -46,11 +46,16 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
+    checkOpenGLError("GLEW Initialization");
+
     shaderProgram = createShaderProgram();
     waveShaderProgram = createComputeShader("../shaders/Wave.comp");
-    
+    checkOpenGLError("Shader Program Creation");
+
+
     createQuad();
-    createFramebuffer();
+    createTextures();
+    checkOpenGLError("Rendering");
 }
 
 GLuint Visualizer::createComputeShader(const char* filePath) {
@@ -74,36 +79,25 @@ GLuint Visualizer::createComputeShader(const char* filePath) {
     return program;
 }
 
-void Visualizer::createFramebuffer() {
-    glGenFramebuffers(1, &FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-
-    // Create textures for current and previous wave data
+void Visualizer::createTextures() {
+    // Create textures for current, previous, and next wave data
     glGenTextures(1, &currentWaveTex);
     glBindTexture(GL_TEXTURE_2D, currentWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currentWaveTex, 0);
 
     glGenTextures(1, &previousWaveTex);
     glBindTexture(GL_TEXTURE_2D, previousWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, previousWaveTex, 0);
 
     glGenTextures(1, &nextWaveTex);
     glBindTexture(GL_TEXTURE_2D, nextWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, nextWaveTex, 0);
-
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
-    }
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 std::string Visualizer::loadShaderSource(const char* filePath) {
@@ -117,6 +111,7 @@ std::string Visualizer::loadShaderSource(const char* filePath) {
     shaderFile.close();
     return shaderStream.str();
 }
+
 GLuint Visualizer::compileShader(GLenum type, const char* source) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
@@ -158,11 +153,8 @@ void Visualizer::createQuad() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
-    glEnableVertexAttribArray(1);
     
     glBindVertexArray(0);
 }
@@ -174,27 +166,26 @@ GLuint Visualizer::createShaderProgram() {
     GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource.c_str());
     GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
 
-    GLuint shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
+    GLuint program = glCreateProgram();
+    glAttachShader(program, vertexShader);
+    glAttachShader(program, fragmentShader);
+    glLinkProgram(program);
 
     GLint success;
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
     }
 
     glDeleteShader(vertexShader);
     glDeleteShader(fragmentShader);
 
-    return shaderProgram;
+    return program;
 }
 
 void Visualizer::update() {
-
     // Dispatch compute shader
     glUseProgram(waveShaderProgram);
     glBindImageTexture(0, currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
@@ -233,13 +224,13 @@ void Visualizer::update() {
     glBindVertexArray(VAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, currentWaveTex); // Bind the framebuffer texture
+
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
     glfwPollEvents();
-
 }
 
 void Visualizer::show() {
@@ -265,12 +256,21 @@ void Visualizer::close() {
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
         glDeleteBuffers(1, &EBO);
-        glDeleteTextures(1, &textureID);
-        glDeleteFramebuffers(1, &FBO);
+        glDeleteTextures(1, &currentWaveTex);
+        glDeleteTextures(1, &previousWaveTex);
+        glDeleteTextures(1, &nextWaveTex);
         glDeleteProgram(shaderProgram);
+        glDeleteProgram(waveShaderProgram);
     }
 }
 
 bool Visualizer::isClosed() const {
     return closed || glfwWindowShouldClose(window);
+}
+
+void Visualizer::checkOpenGLError(const std::string& errorMessage) {
+    GLenum err;
+    while ((err = glGetError()) != GL_NO_ERROR) {
+        std::cerr << "OpenGL error (" << errorMessage << "): " << err << std::endl;
+    }
 }

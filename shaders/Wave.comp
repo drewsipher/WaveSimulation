@@ -7,6 +7,9 @@ layout(binding = 2, rgba32f) uniform image2D nextWave;
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    if (pos.x < 100 && pos.y < 100 && imageLoad(currentWave, pos).r == 0.0) {
+        imageStore(currentWave, pos, vec4(1.0, 0.0, 0.0, 1.0));
+    }
     vec2 texSize = imageSize(currentWave);
 
     if (pos.x >= texSize.x || pos.y >= texSize.y) return;
