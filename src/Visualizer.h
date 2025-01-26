@@ -34,20 +34,19 @@ private:
     GLuint createShaderProgram();
     void createQuad(); 
     void createFramebuffer();
+    GLuint createComputeShader(const char* filePath);
+
 
     
 
     GLFWwindow* window;
     ImVec4 clear_color; 
     GLuint shaderProgram;
-    GLuint VAO, VBO;
-    GLuint framebufferTexture;
+    GLuint waveShaderProgram;
+    GLuint VAO, VBO, EBO;
+    GLuint framebufferTexture, currentWaveTex, previousWaveTex, nextWaveTex;
     GLuint FBO;
     GLuint textureID;
-
-
-    
-        
 
 };
 

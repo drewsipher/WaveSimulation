@@ -1,0 +1,20 @@
+#version 430 core
+layout(local_size_x = 16, local_size_y = 16) in;
+
+layout(binding = 0, rgba32f) uniform image2D currentWave;
+layout(binding = 1, rgba32f) uniform image2D previousWave;
+layout(binding = 2, rgba32f) uniform image2D nextWave;
+
+void main() {
+    ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
+    vec2 texSize = imageSize(currentWave);
+
+    if (pos.x >= texSize.x || pos.y >= texSize.y) return;
+
+    float current = imageLoad(currentWave, pos).r;
+    float previous = imageLoad(previousWave, pos).r;
+
+    float newWave = 2.0 * current - previous; // Basic wave equation
+
+    imageStore(nextWave, pos, vec4(newWave, 0.0, 0.0, 1.0));
+}

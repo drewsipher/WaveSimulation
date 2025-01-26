@@ -44,39 +44,64 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 130");
+    ImGui_ImplOpenGL3_Init("#version 330");
 
     shaderProgram = createShaderProgram();
+    waveShaderProgram = createComputeShader("../shaders/Wave.comp");
+    
     createQuad();
-
     createFramebuffer();
+}
+
+GLuint Visualizer::createComputeShader(const char* filePath) {
+    std::string computeSource = loadShaderSource(filePath);
+    GLuint computeShader = compileShader(GL_COMPUTE_SHADER, computeSource.c_str());
+
+    GLuint program = glCreateProgram();
+    glAttachShader(program, computeShader);
+    glLinkProgram(program);
+
+    GLint success;
+    glGetProgramiv(program, GL_LINK_STATUS, &success);
+    if (!success) {
+        char infoLog[512];
+        glGetProgramInfoLog(program, 512, nullptr, infoLog);
+        std::cerr << "ERROR::PROGRAM::LINKING_FAILED\n" << infoLog << std::endl;
+    }
+
+    glDeleteShader(computeShader);
+
+    return program;
 }
 
 void Visualizer::createFramebuffer() {
     glGenFramebuffers(1, &FBO);
     glBindFramebuffer(GL_FRAMEBUFFER, FBO);
 
-    // Create a texture to attach to the framebuffer
-    glGenTextures(1, &textureID);
-    glBindTexture(GL_TEXTURE_2D, textureID);
-    cv::Mat blank = cv::Mat::zeros(_physics.grid.Height(), _physics.grid.Width(), CV_8UC3);
-    blank.at<cv::Vec3b>(_physics.grid.Height()/2, _physics.grid.Width()/2) = cv::Vec3b(255, 255, 255);
-    cv::circle(blank, cv::Point(_physics.grid.Width()/2, _physics.grid.Height()/2), 100, cv::Scalar(255, 255, 255), -1);
-
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RGB, GL_UNSIGNED_BYTE, blank.data);
+    // Create textures for current and previous wave data
+    glGenTextures(1, &currentWaveTex);
+    glBindTexture(GL_TEXTURE_2D, currentWaveTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureID, 0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, currentWaveTex, 0);
 
-    // Create a renderbuffer object for depth and stencil attachment (optional)
-    GLuint RBO;
-    glGenRenderbuffers(1, &RBO);
-    glBindRenderbuffer(GL_RENDERBUFFER, RBO);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, _physics.grid.Width(), _physics.grid.Height());
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, RBO);
+    glGenTextures(1, &previousWaveTex);
+    glBindTexture(GL_TEXTURE_2D, previousWaveTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, GL_TEXTURE_2D, previousWaveTex, 0);
+
+    glGenTextures(1, &nextWaveTex);
+    glBindTexture(GL_TEXTURE_2D, nextWaveTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT2, GL_TEXTURE_2D, nextWaveTex, 0);
 
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-        std::cerr << "Framebuffer is not complete!" << std::endl;
+        std::cerr << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
     }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
@@ -92,19 +117,16 @@ std::string Visualizer::loadShaderSource(const char* filePath) {
     shaderFile.close();
     return shaderStream.str();
 }
-
-GLuint Visualizer::compileShader(GLenum type, const char* filePath) {
-    std::string shaderSource = loadShaderSource(filePath);
-    const char* source = shaderSource.c_str();
+GLuint Visualizer::compileShader(GLenum type, const char* source) {
     GLuint shader = glCreateShader(type);
-    glShaderSource(shader, 1, &source, NULL);
+    glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
 
     GLint success;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
         char infoLog[512];
-        glGetShaderInfoLog(shader, 512, NULL, infoLog);
+        glGetShaderInfoLog(shader, 512, nullptr, infoLog);
         std::cerr << "ERROR::SHADER::COMPILATION_FAILED\n" << infoLog << std::endl;
     }
     return shader;
@@ -119,24 +141,38 @@ void Visualizer::createQuad() {
         -1.0f, -1.0f  // Bottom-left
     };
 
+    unsigned int indices[] = {
+        0, 1, 2,
+        2, 3, 0
+    };
+
     glGenVertexArrays(1, &VAO);
     glGenBuffers(1, &VBO);
+    glGenBuffers(1, &EBO);
 
     glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    
     glBindVertexArray(0);
 }
 
 GLuint Visualizer::createShaderProgram() {
-    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, "../shaders/SimpleVert.glsl");
-    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, "../shaders/SimpleFrag.glsl");
+    std::string vertexSource = loadShaderSource("../shaders/SimpleVert.glsl");
+    std::string fragmentSource = loadShaderSource("../shaders/SimpleFrag.glsl");
+
+    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource.c_str());
+    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
 
     GLuint shaderProgram = glCreateProgram();
     glAttachShader(shaderProgram, vertexShader);
@@ -158,15 +194,18 @@ GLuint Visualizer::createShaderProgram() {
 }
 
 void Visualizer::update() {
-    _physics.update();
 
-    // Bind the framebuffer and render to it
-    // glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-    // glViewport(0, 0, _physics.grid.Width(), _physics.grid.Height());
-    // glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    // Dispatch compute shader
+    glUseProgram(waveShaderProgram);
+    glBindImageTexture(0, currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+    glBindImageTexture(1, previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+    glBindImageTexture(2, nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+    glDispatchCompute((GLuint)ceil(_physics.grid.Width() / 16.0), (GLuint)ceil(_physics.grid.Height() / 16.0), 1);
+    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
-    // glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    // Swap textures
+    std::swap(currentWaveTex, previousWaveTex);
+    std::swap(currentWaveTex, nextWaveTex);
 
     // Start the ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
@@ -189,17 +228,18 @@ void Visualizer::update() {
     // Use shader program and draw quad
     glUseProgram(shaderProgram);
 
-    glUniform1i(glGetUniformLocation(shaderProgram, "texture1"), 0);
+    glUniform1i(glGetUniformLocation(shaderProgram, "currentWave"), 0);
     
     glBindVertexArray(VAO);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, textureID); // Bind the framebuffer texture
-    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-    glBindVertexArray(0);
+    glBindTexture(GL_TEXTURE_2D, currentWaveTex); // Bind the framebuffer texture
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
+    glfwPollEvents();
+
 }
 
 void Visualizer::show() {
@@ -224,6 +264,9 @@ void Visualizer::close() {
         // Cleanup OpenGL resources
         glDeleteVertexArrays(1, &VAO);
         glDeleteBuffers(1, &VBO);
+        glDeleteBuffers(1, &EBO);
+        glDeleteTextures(1, &textureID);
+        glDeleteFramebuffers(1, &FBO);
         glDeleteProgram(shaderProgram);
     }
 }
