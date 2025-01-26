@@ -11,7 +11,7 @@
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_glfw.h"
 
-Visualizer::Visualizer(int width, int height) : closed(false), min_value(-1.0), max_value(1.0), _width(width), _height(height)
+Visualizer::Visualizer(int width, int height) : _width(width), _height(height)
 {
     // Initialize GLFW
     if (!glfwInit()) {
@@ -20,13 +20,13 @@ Visualizer::Visualizer(int width, int height) : closed(false), min_value(-1.0), 
     }
 
     // Create a GLFW window
-    window = glfwCreateWindow(_width, _height, "Wave Simulation", NULL, NULL);
-    if (window == NULL) {
+    _window = glfwCreateWindow(_width, _height, "Wave Simulation", NULL, NULL);
+    if (_window == NULL) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
         exit(EXIT_FAILURE);
     }
-    glfwMakeContextCurrent(window);
+    glfwMakeContextCurrent(_window);
     glfwSwapInterval(1); // Enable vsync
 
     // Initialize GLEW
@@ -43,24 +43,24 @@ Visualizer::Visualizer(int width, int height) : closed(false), min_value(-1.0), 
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(_window, true);
     ImGui_ImplOpenGL3_Init("#version 330");
 
-    checkOpenGLError("GLEW Initialization");
+    CheckOpenGLError("GLEW Initialization");
 
-    shaderProgram = createShaderProgram();
-    waveShaderProgram = createComputeShader("../shaders/Wave.comp");
-    checkOpenGLError("Shader Program Creation");
+    _shaderProgram = CreateShaderProgram();
+    _waveShaderProgram = CreateComputeShader("../shaders/Wave.comp");
+    CheckOpenGLError("Shader Program Creation");
 
 
-    createQuad();
-    createTextures();
-    checkOpenGLError("Rendering");
+    CreateQuad();
+    CreateTextures();
+    CheckOpenGLError("Rendering");
 }
 
-GLuint Visualizer::createComputeShader(const char* filePath) {
-    std::string computeSource = loadShaderSource(filePath);
-    GLuint computeShader = compileShader(GL_COMPUTE_SHADER, computeSource.c_str());
+GLuint Visualizer::CreateComputeShader(const char* filePath) {
+    std::string computeSource = LoadShaderSource(filePath);
+    GLuint computeShader = CompileShader(GL_COMPUTE_SHADER, computeSource.c_str());
 
     GLuint program = glCreateProgram();
     glAttachShader(program, computeShader);
@@ -79,22 +79,22 @@ GLuint Visualizer::createComputeShader(const char* filePath) {
     return program;
 }
 
-void Visualizer::createTextures() {
+void Visualizer::CreateTextures() {
     // Create textures for current, previous, and next wave data
-    glGenTextures(1, &currentWaveTex);
-    glBindTexture(GL_TEXTURE_2D, currentWaveTex);
+    glGenTextures(1, &_currentWaveTex);
+    glBindTexture(GL_TEXTURE_2D, _currentWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glGenTextures(1, &previousWaveTex);
-    glBindTexture(GL_TEXTURE_2D, previousWaveTex);
+    glGenTextures(1, &_previousWaveTex);
+    glBindTexture(GL_TEXTURE_2D, _previousWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    glGenTextures(1, &nextWaveTex);
-    glBindTexture(GL_TEXTURE_2D, nextWaveTex);
+    glGenTextures(1, &_nextWaveTex);
+    glBindTexture(GL_TEXTURE_2D, _nextWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -104,14 +104,14 @@ void Visualizer::createTextures() {
     speedImage.setTo(343.0f);
     cv::circle(speedImage, cv::Point(_width / 2, _height / 2), std::min(_width, _height) / 4, cv::Scalar(200.0f), -1);
     
-    glGenTextures(1, &speedTex);
-    glBindTexture(GL_TEXTURE_2D, speedTex);
+    glGenTextures(1, &_speedTex);
+    glBindTexture(GL_TEXTURE_2D, _speedTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, speedImage.ptr());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
-std::string Visualizer::loadShaderSource(const char* filePath) {
+std::string Visualizer::LoadShaderSource(const char* filePath) {
     std::ifstream shaderFile(filePath);
     if (!shaderFile.is_open()) {
         std::cerr << "Failed to open shader file: " << filePath << std::endl;
@@ -123,7 +123,7 @@ std::string Visualizer::loadShaderSource(const char* filePath) {
     return shaderStream.str();
 }
 
-GLuint Visualizer::compileShader(GLenum type, const char* source) {
+GLuint Visualizer::CompileShader(GLenum type, const char* source) {
     GLuint shader = glCreateShader(type);
     glShaderSource(shader, 1, &source, nullptr);
     glCompileShader(shader);
@@ -138,7 +138,7 @@ GLuint Visualizer::compileShader(GLenum type, const char* source) {
     return shader;
 }
 
-void Visualizer::createQuad() {
+void Visualizer::CreateQuad() {
     float vertices[] = {
         // Positions
         -1.0f,  1.0f, // Top-left
@@ -152,16 +152,16 @@ void Visualizer::createQuad() {
         2, 3, 0
     };
 
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glGenBuffers(1, &EBO);
+    glGenVertexArrays(1, &_VAO);
+    glGenBuffers(1, &_VBO);
+    glGenBuffers(1, &_EBO);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(_VAO);
 
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBindBuffer(GL_ARRAY_BUFFER, _VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
@@ -170,12 +170,12 @@ void Visualizer::createQuad() {
     glBindVertexArray(0);
 }
 
-GLuint Visualizer::createShaderProgram() {
-    std::string vertexSource = loadShaderSource("../shaders/SimpleVert.glsl");
-    std::string fragmentSource = loadShaderSource("../shaders/SimpleFrag.glsl");
+GLuint Visualizer::CreateShaderProgram() {
+    std::string vertexSource = LoadShaderSource("../shaders/SimpleVert.glsl");
+    std::string fragmentSource = LoadShaderSource("../shaders/SimpleFrag.glsl");
 
-    GLuint vertexShader = compileShader(GL_VERTEX_SHADER, vertexSource.c_str());
-    GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
+    GLuint vertexShader = CompileShader(GL_VERTEX_SHADER, vertexSource.c_str());
+    GLuint fragmentShader = CompileShader(GL_FRAGMENT_SHADER, fragmentSource.c_str());
 
     GLuint program = glCreateProgram();
     glAttachShader(program, vertexShader);
@@ -196,56 +196,82 @@ GLuint Visualizer::createShaderProgram() {
     return program;
 }
 
+void Visualizer::DrawUI() {
+    ImGui::Begin("Wave Simulation");
+    if (_simulationStart)
+    {
+        if (ImGui::Button("Stop")) {
+            std::cout << "Starting" << std::endl;
+            _simulationStart = false;
+        } 
+        ImGui::BeginDisabled();
+        ImGui::Button("Reset");
+        ImGui::EndDisabled();
+    } else 
+    {
+        if (ImGui::Button("Start")) {
+            std::cout << "Stopping" << std::endl;
+            _simulationStart = true;
+        }
+        if (ImGui::Button("Reset")) {
+            std::cout << "Reset button pressed" << std::endl;
+        }
+    }
+
+    ImGui::End();
+}
+
 void Visualizer::update() {
-    // Dispatch compute shader
-    glUseProgram(waveShaderProgram);
-    glBindImageTexture(0, currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
-    glBindImageTexture(1, previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
-    glBindImageTexture(2, nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-    glBindImageTexture(3, speedTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
-    glDispatchCompute((GLuint)ceil(_width / 16.0), (GLuint)ceil(_height / 16.0), 1);
-    glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+    if (_simulationStart)
+    {
+        // Dispatch compute shader
+        glUseProgram(_waveShaderProgram);
+        glBindImageTexture(0, _currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+        glBindImageTexture(1, _previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+        glBindImageTexture(2, _nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        glBindImageTexture(3, _speedTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
-    // Swap textures
-    std::swap(currentWaveTex, previousWaveTex);
-    std::swap(currentWaveTex, nextWaveTex);
+        glDispatchCompute((GLuint)ceil(_width / 16.0), (GLuint)ceil(_height / 16.0), 1);
+        glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+        // Swap textures
+        std::swap(_currentWaveTex, _previousWaveTex);
+        std::swap(_currentWaveTex, _nextWaveTex);
+    }
 
     // Start the ImGui frame
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    // Create ImGui window
-    // ImGui::Begin("Wave Simulation");
-    // ImGui::Text("This is some useful text.");
-    // ImGui::End();
+    DrawUI();
 
     // Rendering
     ImGui::Render();
     int display_w, display_h;
-    glfwGetFramebufferSize(window, &display_w, &display_h);
+    glfwGetFramebufferSize(_window, &display_w, &display_h);
     glViewport(0, 0, display_w, display_h);
-    glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
+    glClearColor(0.45f, 0.55f, 0.60f, 1.00f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     // Use shader program and draw quad
-    glUseProgram(shaderProgram);
+    glUseProgram(_shaderProgram);
 
-    glUniform1i(glGetUniformLocation(shaderProgram, "currentWave"), 0);
-    glUniform1i(glGetUniformLocation(shaderProgram, "speedValues"), 1);
+    glUniform1i(glGetUniformLocation(_shaderProgram, "currentWave"), 0);
+    glUniform1i(glGetUniformLocation(_shaderProgram, "speedValues"), 1);
     
-    glBindVertexArray(VAO);
+    glBindVertexArray(_VAO);
     glActiveTexture(GL_TEXTURE0);
-    glBindTexture(GL_TEXTURE_2D, currentWaveTex); // Bind the framebuffer texture
+    glBindTexture(GL_TEXTURE_2D, _currentWaveTex); // Bind the framebuffer texture
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, speedTex);
+    glBindTexture(GL_TEXTURE_2D, _speedTex);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-    glfwSwapBuffers(window);
+    glfwSwapBuffers(_window);
     glfwPollEvents();
 }
 
@@ -260,32 +286,32 @@ void Visualizer::show() {
 }
 
 void Visualizer::close() {
-    if (!closed) {
-        closed = true;
+    if (!_closed) {
+        _closed = true;
         ImGui_ImplOpenGL3_Shutdown();
         ImGui_ImplGlfw_Shutdown();
         ImGui::DestroyContext();
-        glfwDestroyWindow(window);
+        glfwDestroyWindow(_window);
         glfwTerminate();
 
         // Cleanup OpenGL resources
-        glDeleteVertexArrays(1, &VAO);
-        glDeleteBuffers(1, &VBO);
-        glDeleteBuffers(1, &EBO);
-        glDeleteTextures(1, &currentWaveTex);
-        glDeleteTextures(1, &previousWaveTex);
-        glDeleteTextures(1, &nextWaveTex);
-        glDeleteTextures(1, &speedTex);
-        glDeleteProgram(shaderProgram);
-        glDeleteProgram(waveShaderProgram);
+        glDeleteVertexArrays(1, &_VAO);
+        glDeleteBuffers(1, &_VBO);
+        glDeleteBuffers(1, &_EBO);
+        glDeleteTextures(1, &_currentWaveTex);
+        glDeleteTextures(1, &_previousWaveTex);
+        glDeleteTextures(1, &_nextWaveTex);
+        glDeleteTextures(1, &_speedTex);
+        glDeleteProgram(_shaderProgram);
+        glDeleteProgram(_waveShaderProgram);
     }
 }
 
 bool Visualizer::isClosed() const {
-    return closed || glfwWindowShouldClose(window);
+    return _closed || glfwWindowShouldClose(_window);
 }
 
-void Visualizer::checkOpenGLError(const std::string& errorMessage) {
+void Visualizer::CheckOpenGLError(const std::string& errorMessage) {
     GLenum err;
     while ((err = glGetError()) != GL_NO_ERROR) {
         std::cerr << "OpenGL error (" << errorMessage << "): " << err << std::endl;
