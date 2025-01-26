@@ -104,9 +104,15 @@ void Visualizer::CreateTextures() {
     speedImage.setTo(343.0f);
     cv::circle(speedImage, cv::Point(_width / 2, _height / 2), std::min(_width, _height) / 4, cv::Scalar(200.0f), -1);
     
-    glGenTextures(1, &_speedTex);
-    glBindTexture(GL_TEXTURE_2D, _speedTex);
+    glGenTextures(1, &_speedsTex);
+    glBindTexture(GL_TEXTURE_2D, _speedsTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, speedImage.ptr());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    glGenTextures(1, &_sourcesTex);
+    glBindTexture(GL_TEXTURE_2D, _sourcesTex);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, _width, _height, 0, GL_RGB, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
@@ -230,7 +236,8 @@ void Visualizer::update() {
         glBindImageTexture(0, _currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
         glBindImageTexture(1, _previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
         glBindImageTexture(2, _nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-        glBindImageTexture(3, _speedTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        glBindImageTexture(3, _speedsTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        glBindImageTexture(4, _sourcesTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
 
         glDispatchCompute((GLuint)ceil(_width / 16.0), (GLuint)ceil(_height / 16.0), 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -265,7 +272,10 @@ void Visualizer::update() {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _currentWaveTex); // Bind the framebuffer texture
     glActiveTexture(GL_TEXTURE1);
-    glBindTexture(GL_TEXTURE_2D, _speedTex);
+    glBindTexture(GL_TEXTURE_2D, _speedsTex);
+    glActiveTexture(GL_TEXTURE2);
+    glBindTexture(GL_TEXTURE_2D, _sourcesTex);
+
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
@@ -301,7 +311,8 @@ void Visualizer::close() {
         glDeleteTextures(1, &_currentWaveTex);
         glDeleteTextures(1, &_previousWaveTex);
         glDeleteTextures(1, &_nextWaveTex);
-        glDeleteTextures(1, &_speedTex);
+        glDeleteTextures(1, &_speedsTex);
+        glDeleteTextures(1, &_sourcesTex);
         glDeleteProgram(_shaderProgram);
         glDeleteProgram(_waveShaderProgram);
     }

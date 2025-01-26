@@ -5,6 +5,7 @@ layout(binding = 0, rgba32f) uniform image2D currentWave;
 layout(binding = 1, rgba32f) uniform image2D previousWave;
 layout(binding = 2, rgba32f) uniform image2D nextWave;
 layout(binding = 3, rgba32f) uniform image2D speed;
+layout(binding = 4, rgba32f) uniform image2D sources;
 
 
 void main() {
