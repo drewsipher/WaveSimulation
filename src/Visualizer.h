@@ -5,22 +5,20 @@
 #include <GLFW/glfw3.h>
 #include "imgui.h"
 
-#include "Physics.h"
-
 class Visualizer {
 public:
-    Visualizer(Physics& physics);
+    Visualizer(int width, int height);
     void show();
     void update();
     void close();
     bool isClosed() const;
 
 private:
-    Physics& _physics;
-    cv::Mat image;
     bool closed;
     double min_value;
     double max_value;
+    int _width;
+    int _height;
     cv::Mat tint;
     cv::Mat cmap;
     std::vector<std::pair<int, int>> audio_sources;

@@ -7,17 +7,33 @@ layout(binding = 2, rgba32f) uniform image2D nextWave;
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
-    if (pos.x < 100 && pos.y < 100 && imageLoad(currentWave, pos).r == 0.0) {
+    if (pos == ivec2(0, 0)) {
         imageStore(currentWave, pos, vec4(1.0, 0.0, 0.0, 1.0));
+        return;
     }
+
     vec2 texSize = imageSize(currentWave);
+    ivec2 left = pos + ivec2(-1, 0);
+    ivec2 right = pos + ivec2(1, 0);
+    ivec2 up = pos + ivec2(0, 1);
+    ivec2 down = pos + ivec2(0, -1);
 
-    if (pos.x >= texSize.x || pos.y >= texSize.y) return;
+    float center = imageLoad(currentWave, pos).r;
+    float leftValue = (left.x >= 0) ? imageLoad(currentWave, left).r : center;
+    float rightValue = (right.x < texSize.x) ? imageLoad(currentWave, right).r : center;
+    float upValue = (up.y < texSize.y) ? imageLoad(currentWave, up).r : center;
+    float downValue = (down.y >= 0) ? imageLoad(currentWave, down).r : center;
 
-    float current = imageLoad(currentWave, pos).r;
+    float laplacian = leftValue + rightValue + upValue + downValue - 4.0 * center;
+
+    float density = 1.0;
+    float speed = 343.0 / density;
+    float time_step = 0.0008;
+    float coeff = (speed * speed) * (time_step * time_step);
+
     float previous = imageLoad(previousWave, pos).r;
 
-    float newWave = 2.0 * current - previous; // Basic wave equation
+    float newWave = 2.0 * center - previous + coeff * laplacian; // Basic wave equation
 
     imageStore(nextWave, pos, vec4(newWave, 0.0, 0.0, 1.0));
 }

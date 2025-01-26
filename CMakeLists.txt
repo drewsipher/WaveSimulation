@@ -53,7 +53,6 @@ include_directories(imgui)
 set(SOURCES
     main.cpp
     src/SimulationGrid.cpp
-    src/Physics.cpp
     src/Visualizer.cpp
     imgui/imgui.cpp
     imgui/imgui_draw.cpp

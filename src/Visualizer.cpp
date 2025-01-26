@@ -11,7 +11,7 @@
 #include "backends/imgui_impl_opengl3.h"
 #include "backends/imgui_impl_glfw.h"
 
-Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min_value(-1.0), max_value(1.0) 
+Visualizer::Visualizer(int width, int height) : closed(false), min_value(-1.0), max_value(1.0), _width(width), _height(height)
 {
     // Initialize GLFW
     if (!glfwInit()) {
@@ -20,7 +20,7 @@ Visualizer::Visualizer(Physics& physics) : _physics(physics), closed(false), min
     }
 
     // Create a GLFW window
-    window = glfwCreateWindow(_physics.grid.Width(), _physics.grid.Height(), "Wave Simulation", NULL, NULL);
+    window = glfwCreateWindow(_width, _height, "Wave Simulation", NULL, NULL);
     if (window == NULL) {
         std::cerr << "Failed to create GLFW window" << std::endl;
         glfwTerminate();
@@ -83,19 +83,19 @@ void Visualizer::createTextures() {
     // Create textures for current, previous, and next wave data
     glGenTextures(1, &currentWaveTex);
     glBindTexture(GL_TEXTURE_2D, currentWaveTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glGenTextures(1, &previousWaveTex);
     glBindTexture(GL_TEXTURE_2D, previousWaveTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glGenTextures(1, &nextWaveTex);
     glBindTexture(GL_TEXTURE_2D, nextWaveTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _physics.grid.Width(), _physics.grid.Height(), 0, GL_RED, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
@@ -191,7 +191,7 @@ void Visualizer::update() {
     glBindImageTexture(0, currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
     glBindImageTexture(1, previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
     glBindImageTexture(2, nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-    glDispatchCompute((GLuint)ceil(_physics.grid.Width() / 16.0), (GLuint)ceil(_physics.grid.Height() / 16.0), 1);
+    glDispatchCompute((GLuint)ceil(_width / 16.0), (GLuint)ceil(_height / 16.0), 1);
     glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
     // Swap textures
@@ -231,6 +231,8 @@ void Visualizer::update() {
 
     glfwSwapBuffers(window);
     glfwPollEvents();
+
+    // std::this_thread::sleep_for(std::chrono::seconds(1));
 }
 
 void Visualizer::show() {
