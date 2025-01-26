@@ -43,7 +43,7 @@ private:
     GLuint shaderProgram;
     GLuint waveShaderProgram;
     GLuint VAO, VBO, EBO;
-    GLuint framebufferTexture, currentWaveTex, previousWaveTex, nextWaveTex;
+    GLuint framebufferTexture, currentWaveTex, previousWaveTex, nextWaveTex, speedTex;
     GLuint FBO;
     GLuint textureID;
 

@@ -4,6 +4,8 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(binding = 0, rgba32f) uniform image2D currentWave;
 layout(binding = 1, rgba32f) uniform image2D previousWave;
 layout(binding = 2, rgba32f) uniform image2D nextWave;
+layout(binding = 3, rgba32f) uniform image2D speed;
+
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
@@ -26,8 +28,7 @@ void main() {
 
     float laplacian = leftValue + rightValue + upValue + downValue - 4.0 * center;
 
-    float density = 1.0;
-    float speed = 343.0 / density;
+    float speed = imageLoad(speed, pos).r;
     float time_step = 0.0008;
     float coeff = (speed * speed) * (time_step * time_step);
 

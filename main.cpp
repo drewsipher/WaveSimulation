@@ -8,7 +8,7 @@ int main() {
 
     // Initialize visualizer
     std::cout << "Initializing visualizer..." << std::endl;
-    Visualizer visualizer = Visualizer(600,600);
+    Visualizer visualizer = Visualizer(1024,1024);
     visualizer.show();
 
     visualizer.close();
