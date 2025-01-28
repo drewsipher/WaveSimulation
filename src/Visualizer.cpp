@@ -206,7 +206,7 @@ void Visualizer::DrawUI() {
     if (_simulationStart)
     {
         if (ImGui::Button("Stop")) {
-            std::cout << "Starting" << std::endl;
+            std::cout << "Stopping" << std::endl;
             _simulationStart = false;
         } 
         ImGui::BeginDisabled();
@@ -215,7 +215,7 @@ void Visualizer::DrawUI() {
     } else 
     {
         if (ImGui::Button("Start")) {
-            std::cout << "Stopping" << std::endl;
+            std::cout << "Starting" << std::endl;
             _simulationStart = true;
         }
         if (ImGui::Button("Reset")) {
@@ -226,8 +226,8 @@ void Visualizer::DrawUI() {
     ImGui::End();
     ImGui::Begin("Sources");
 
-    static float speed = 343.0f;
-    ImGui::SliderFloat("Speed", &speed, 0.0f, 1000.0f);
+    // static float speed = 343.0f;
+    // ImGui::SliderFloat("Speed", &speed, 0.0f, 1000.0f);
 
     static float frequency = 0.0f;
     ImGui::SliderFloat("Frequency", &frequency, 0.0f, 1000.0f);
