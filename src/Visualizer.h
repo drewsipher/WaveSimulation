@@ -12,6 +12,8 @@ public:
     void update();
     void close();
     bool isClosed() const;
+    int GetWidth() const { return _width; };
+    int GetHeight() const { return _height; };
 
 private:
     bool _closed = false;

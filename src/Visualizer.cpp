@@ -224,6 +224,18 @@ void Visualizer::DrawUI() {
     }
 
     ImGui::End();
+    ImGui::Begin("Sources");
+
+    static float speed = 343.0f;
+    ImGui::SliderFloat("Speed", &speed, 0.0f, 1000.0f);
+
+    static float frequency = 0.0f;
+    ImGui::SliderFloat("Frequency", &frequency, 0.0f, 1000.0f);
+
+    static float length = 0.0f;
+    ImGui::SliderFloat("Length", &length, 0.0f, 20.0f);
+
+    ImGui::End();
 }
 
 void Visualizer::update() {
