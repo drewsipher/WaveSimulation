@@ -52,7 +52,6 @@ Visualizer::Visualizer(int width, int height) : _width(width), _height(height)
     _waveShaderProgram = CreateComputeShader("../shaders/Wave.comp");
     CheckOpenGLError("Shader Program Creation");
 
-
     CreateQuad();
     CreateTextures();
     CheckOpenGLError("Rendering");
@@ -228,6 +227,12 @@ void Visualizer::DrawUI() {
 }
 
 void Visualizer::update() {
+    // Check for mouse click
+    if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+        double xpos, ypos;
+        glfwGetCursorPos(_window, &xpos, &ypos);
+        AddValueToTexture(xpos, ypos);
+    }
 
     if (_simulationStart)
     {
@@ -267,7 +272,8 @@ void Visualizer::update() {
 
     glUniform1i(glGetUniformLocation(_shaderProgram, "currentWave"), 0);
     glUniform1i(glGetUniformLocation(_shaderProgram, "speedValues"), 1);
-    
+    glUniform1i(glGetUniformLocation(_shaderProgram, "sources"), 2);
+
     glBindVertexArray(_VAO);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, _currentWaveTex); // Bind the framebuffer texture
@@ -276,13 +282,44 @@ void Visualizer::update() {
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, _sourcesTex);
 
-
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(_window);
     glfwPollEvents();
+}
+
+void Visualizer::AddValueToTexture(double xpos, double ypos) {
+    
+    // Convert window coordinates to texture coordinates
+    int tex_x = static_cast<int>(xpos);
+    int tex_y = static_cast<int>(_height - ypos);
+
+    if (_lastMousePoint == cv::Point2i(tex_x, tex_y)) {
+        return;
+    }
+    _lastMousePoint = cv::Point2i(tex_x, tex_y);
+
+    // Bind the sources texture
+    glBindTexture(GL_TEXTURE_2D, _sourcesTex);
+
+    // Read the current texture data
+    std::vector<float> data(_width * _height * 3);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
+
+    // Modify the texture data at the clicked position
+    int index = (tex_y * _width + tex_x) * 3;
+    data[index] = 1.0f; // Set the red channel to 1.0 (you can modify this as needed)
+    data[index + 1] = 0.0f; // Set the green channel to 0.0
+    data[index + 2] = 0.0f; // Set the blue channel to 0.0
+
+    // Update the texture with the modified data
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGB, GL_FLOAT, data.data());
+
+    // Unbind the texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
 }
 
 void Visualizer::show() {

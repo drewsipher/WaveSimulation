@@ -27,6 +27,9 @@ private:
     GLuint CreateComputeShader(const char* filePath);
     void CheckOpenGLError(const std::string& errorMessage);
     void DrawUI();
+    void AddValueToTexture(double xpos, double ypos);
+
+    cv::Point2i _lastMousePoint = cv::Point2i(-1, -1);
 
     GLFWwindow* _window;
     GLuint _shaderProgram;
