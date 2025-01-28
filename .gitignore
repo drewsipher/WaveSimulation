@@ -9,10 +9,9 @@
 /cmake_install.cmake
 
 # Ignore Visual Studio Code settings
-/.vscode/
-!.vscode/launch.json
-!.vscode/tasks.json
-
+!/.vscode/launch.json
+!/.vscode/tasks.json
+# /.vscode/
 
 # Ignore Visual Studio files
 *.vcxproj
