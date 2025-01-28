@@ -83,6 +83,9 @@
 			"cinttypes": "cpp",
 			"typeindex": "cpp",
 			"variant": "cpp"
+		},
+		"files.exclude": {
+			"imgui": true
 		}
 	}
 }
