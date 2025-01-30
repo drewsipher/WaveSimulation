@@ -39,6 +39,7 @@ void main() {
     float previous = imageLoad(previousWave, pos).r;
 
     float newWave = 2.0 * center - previous + coeff * laplacian; // Basic wave equation
+    newWave *= 0.999005;
 
     imageStore(nextWave, pos, vec4(newWave, 0.0, 0.0, 1.0));
 }

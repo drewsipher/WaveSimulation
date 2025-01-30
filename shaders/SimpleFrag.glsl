@@ -11,5 +11,8 @@ void main() {
     float speed = texture(speedValues, TexCoords).r;
     vec3 source = texture(sources, TexCoords).rgb;
 
-    FragColor = vec4(waveHeight, 1.0-(speed/343.0), source.r, 1.0);
+    float red = clamp(waveHeight, 0.0, 1.0);
+    float blue = clamp(-waveHeight, 0.0, 1.0);
+    
+    FragColor = vec4(red, 1.0-(speed/343.0), blue, 1.0);
 }
