@@ -80,6 +80,7 @@ GLuint Visualizer::CreateComputeShader(const char* filePath) {
 
 void Visualizer::CreateTextures() {
     // Create textures for current, previous, and next wave data
+
     glGenTextures(1, &_currentWaveTex);
     glBindTexture(GL_TEXTURE_2D, _currentWaveTex);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, _width, _height, 0, GL_RED, GL_FLOAT, nullptr);
@@ -111,7 +112,7 @@ void Visualizer::CreateTextures() {
 
     glGenTextures(1, &_sourcesTex);
     glBindTexture(GL_TEXTURE_2D, _sourcesTex);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB32F, _width, _height, 0, GL_RGB, GL_FLOAT, nullptr);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, _width, _height, 0, GL_RGBA, GL_FLOAT, nullptr);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
@@ -219,6 +220,7 @@ void Visualizer::DrawUI() {
             _simulationStart = true;
         }
         if (ImGui::Button("Reset")) {
+            Reset();
             std::cout << "Reset button pressed" << std::endl;
         }
     }
@@ -250,11 +252,11 @@ void Visualizer::update() {
     {
         // Dispatch compute shader
         glUseProgram(_waveShaderProgram);
-        glBindImageTexture(0, _currentWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+        glBindImageTexture(0, _currentWaveTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
         glBindImageTexture(1, _previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
         glBindImageTexture(2, _nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-        glBindImageTexture(3, _speedsTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
-        glBindImageTexture(4, _sourcesTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
+        glBindImageTexture(3, _speedsTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
+        glBindImageTexture(4, _sourcesTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
         glDispatchCompute((GLuint)ceil(_width / 16.0), (GLuint)ceil(_height / 16.0), 1);
         glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
@@ -317,17 +319,41 @@ void Visualizer::AddValueToTexture(double xpos, double ypos) {
     glBindTexture(GL_TEXTURE_2D, _sourcesTex);
 
     // Read the current texture data
-    std::vector<float> data(_width * _height * 3);
-    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_FLOAT, data.data());
+    std::vector<float> data(_width * _height * 4);
+    glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_FLOAT, data.data());
 
     // Modify the texture data at the clicked position
-    int index = (tex_y * _width + tex_x) * 3;
+    int index = (tex_y * _width + tex_x) * 4;
     data[index] = 1.0f; // Set the red channel to 1.0 (you can modify this as needed)
     data[index + 1] = 0.0f; // Set the green channel to 0.0
     data[index + 2] = 0.0f; // Set the blue channel to 0.0
+    data[index + 3] = 0.0f; // Set the blue channel to 0.0
 
     // Update the texture with the modified data
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGB, GL_FLOAT, data.data());
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGBA, GL_FLOAT, data.data());
+
+    // Unbind the texture
+    glBindTexture(GL_TEXTURE_2D, 0);
+
+}
+
+void Visualizer::Reset() {
+
+    std::vector<float> data(_width * _height * 4);
+    std::fill(data.begin(), data.end(), 0.0f);
+    
+    // Bind the sources texture
+    glBindTexture(GL_TEXTURE_2D, _sourcesTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGBA, GL_FLOAT, data.data());
+
+    glBindTexture(GL_TEXTURE_2D, _currentWaveTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RED, GL_FLOAT, data.data());
+
+    glBindTexture(GL_TEXTURE_2D, _previousWaveTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RED, GL_FLOAT, data.data());
+
+    glBindTexture(GL_TEXTURE_2D, _nextWaveTex);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RED, GL_FLOAT, data.data());
 
     // Unbind the texture
     glBindTexture(GL_TEXTURE_2D, 0);

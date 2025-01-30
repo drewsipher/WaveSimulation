@@ -30,6 +30,7 @@ private:
     void CheckOpenGLError(const std::string& errorMessage);
     void DrawUI();
     void AddValueToTexture(double xpos, double ypos);
+    void Reset();
 
     cv::Point2i _lastMousePoint = cv::Point2i(-1, -1);
 
