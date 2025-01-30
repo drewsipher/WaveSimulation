@@ -231,11 +231,10 @@ void Visualizer::DrawUI() {
     // static float speed = 343.0f;
     // ImGui::SliderFloat("Speed", &speed, 0.0f, 1000.0f);
 
-    static float frequency = 0.0f;
-    ImGui::SliderFloat("Frequency", &frequency, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Frequency", &_frequency, 0.0f, 1000.0f);
+    ImGui::SliderFloat("Length", &_length, 0.0f, 20.0f);
+    ImGui::SliderFloat("Amplitude", &_amplitude, 0.0f, 20.0f);
 
-    static float length = 0.0f;
-    ImGui::SliderFloat("Length", &length, 0.0f, 20.0f);
 
     ImGui::End();
 }
@@ -324,10 +323,10 @@ void Visualizer::AddValueToTexture(double xpos, double ypos) {
 
     // Modify the texture data at the clicked position
     int index = (tex_y * _width + tex_x) * 4;
-    data[index] = 1.0f; // Set the red channel to 1.0 (you can modify this as needed)
-    data[index + 1] = 0.0f; // Set the green channel to 0.0
-    data[index + 2] = 0.0f; // Set the blue channel to 0.0
-    data[index + 3] = 0.0f; // Set the blue channel to 0.0
+    data[index] = 1.0f; // denotes the source is active
+    data[index + 1] = _frequency; // the frequency of the source
+    data[index + 2] = _length; // the length of the source
+    data[index + 3] = _amplitude; // the amplitude of the source
 
     // Update the texture with the modified data
     glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _width, _height, GL_RGBA, GL_FLOAT, data.data());

@@ -7,15 +7,27 @@ layout(binding = 2, r32f) uniform image2D nextWave;
 layout(binding = 3, r32f) uniform image2D speed;
 layout(binding = 4, rgba32f) uniform image2D sources;
 
+const float time_step = 0.0008;
+
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     vec4 source = imageLoad(sources, pos);
-
+    
     if (source.r > 0.0)
     {
-        imageStore(sources, pos, vec4(0.0, 0.0, 0.0, 1.0));
-        imageStore(currentWave, pos, vec4(1.0, 0.0, 0.0, 1.0));
+        // frequency = source.g;
+        // duration = source.b;
+        // amplitude = source.a;
+        if (source.b > 0.0)
+        {
+            source.b -= (time_step / source.g);
+            imageStore(sources, pos, vec4(source.r, source.g, source.b, source.a));
+            float val = source.a * cos(2.0 * 3.14159265359 * source.g * source.b);
+            imageStore(currentWave, pos, vec4(val, 0.0, 0.0, 1.0));
+        } else {
+            imageStore(sources, pos, vec4(0.0, 0.0, 0.0, 1.0));
+        }
     }
 
     vec2 texSize = imageSize(currentWave);
@@ -33,7 +45,7 @@ void main() {
     float laplacian = leftValue + rightValue + upValue + downValue - 4.0 * center;
 
     float speed = imageLoad(speed, pos).r;
-    float time_step = 0.0008;
+    
     float coeff = (speed * speed) * (time_step * time_step);
 
     float previous = imageLoad(previousWave, pos).r;
