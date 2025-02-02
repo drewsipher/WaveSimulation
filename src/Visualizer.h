@@ -22,9 +22,10 @@ private:
     int _height;
 
     float _frequency = 100.0f;
-    float _length = 0.0f;
+    float _length = 20.0f;
     float _amplitude = 1.0f;
-
+    float _maxSimSpeed = 343;
+    
     std::string LoadShaderSource(const char* filePath);
     GLuint CompileShader(GLenum type, const char* filePath);
     GLuint CreateShaderProgram();

@@ -4,30 +4,31 @@ layout(local_size_x = 16, local_size_y = 16) in;
 layout(binding = 0, r32f) uniform image2D currentWave;
 layout(binding = 1, r32f) uniform image2D previousWave;
 layout(binding = 2, r32f) uniform image2D nextWave;
-layout(binding = 3, r32f) uniform image2D speed;
+layout(binding = 3, r32f) uniform image2D speedTex;
 layout(binding = 4, rgba32f) uniform image2D sources;
 
-const float time_step = 0.0008;
-
+uniform float maxSimSpeed; // set this externally after scanning speedTex
+float dx = 1.0; // in meters per cell
+float cflNumber = 0.4;     // Courant–Friedrichs–Lewy factor
+float time_step = 0.0001;//(cflNumber * dx) / maxSimSpeed;
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     vec4 source = imageLoad(sources, pos);
-    
+    float center = imageLoad(currentWave, pos).r;
+
     if (source.r > 0.0)
-    {
-        // frequency = source.g;
-        // duration = source.b;
-        // amplitude = source.a;
-        if (source.b > 0.0)
+    {   
+        // frequency = source.g;  duration = source.r; amplitude = source.a;
+        source.b += time_step * source.g;
+        
+        if (source.b >= source.r)
         {
-            source.b -= (time_step / source.g);
-            imageStore(sources, pos, vec4(source.r, source.g, source.b, source.a));
-            float val = source.a * cos(2.0 * 3.14159265359 * source.g * source.b);
-            imageStore(currentWave, pos, vec4(val, 0.0, 0.0, 1.0));
-        } else {
-            imageStore(sources, pos, vec4(0.0, 0.0, 0.0, 1.0));
+            source.r = 0.0;
         }
+        
+        imageStore(sources, pos, vec4(source.r, source.g, source.b, source.a));
+        center = source.a * sin(2.0 * 3.14159265359 * source.g * source.b);
     }
 
     vec2 texSize = imageSize(currentWave);
@@ -36,21 +37,20 @@ void main() {
     ivec2 up = pos + ivec2(0, 1);
     ivec2 down = pos + ivec2(0, -1);
 
-    float center = imageLoad(currentWave, pos).r;
     float leftValue = (left.x >= 0) ? imageLoad(currentWave, left).r : center;
     float rightValue = (right.x < texSize.x) ? imageLoad(currentWave, right).r : center;
     float upValue = (up.y < texSize.y) ? imageLoad(currentWave, up).r : center;
     float downValue = (down.y >= 0) ? imageLoad(currentWave, down).r : center;
-
-    float laplacian = leftValue + rightValue + upValue + downValue - 4.0 * center;
-
-    float speed = imageLoad(speed, pos).r;
     
-    float coeff = (speed * speed) * (time_step * time_step);
+    float laplacian = (leftValue + rightValue + upValue + downValue) - (4.0 * center);
+
+    float speed = imageLoad(speedTex, pos).r;
+    
+    double coeff = (speed * speed) * (time_step * time_step) / (dx *dx);
 
     float previous = imageLoad(previousWave, pos).r;
 
-    float newWave = 2.0 * center - previous + coeff * laplacian; // Basic wave equation
+    double newWave = (2.0 * center) - previous + (coeff * laplacian); // Basic wave equation
     newWave *= 0.999005;
 
     imageStore(nextWave, pos, vec4(newWave, 0.0, 0.0, 1.0));

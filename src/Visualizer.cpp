@@ -102,7 +102,8 @@ void Visualizer::CreateTextures() {
     // Create texture for density data
     cv::Mat speedImage = cv::Mat::zeros(_height, _width, CV_32F);
     speedImage.setTo(343.0f);
-    cv::circle(speedImage, cv::Point(_width / 2, _height / 2), std::min(_width, _height) / 4, cv::Scalar(200.0f), -1);
+    _maxSimSpeed = 343.0f;
+    // cv::circle(speedImage, cv::Point(_width / 2, _height / 2), std::min(_width, _height) / 4, cv::Scalar(200.0f), -1);
     
     glGenTextures(1, &_speedsTex);
     glBindTexture(GL_TEXTURE_2D, _speedsTex);
@@ -231,9 +232,9 @@ void Visualizer::DrawUI() {
     // static float speed = 343.0f;
     // ImGui::SliderFloat("Speed", &speed, 0.0f, 1000.0f);
 
-    ImGui::SliderFloat("Frequency", &_frequency, 0.0f, 1000.0f);
-    ImGui::SliderFloat("Length", &_length, 0.0f, 20.0f);
-    ImGui::SliderFloat("Amplitude", &_amplitude, 0.0f, 20.0f);
+    ImGui::SliderFloat("Frequency", &_frequency, 1.0f, 10000.0f);
+    ImGui::SliderFloat("Length", &_length, 1.0f, 10000.0f);
+    ImGui::SliderFloat("Amplitude", &_amplitude, 0.0f, 100.0f);
 
 
     ImGui::End();
@@ -249,8 +250,11 @@ void Visualizer::update() {
 
     if (_simulationStart)
     {
+        for (int i =0; i < 1;++i)
+        {
         // Dispatch compute shader
         glUseProgram(_waveShaderProgram);
+        glUniform1f(glGetUniformLocation(_waveShaderProgram, "maxSimSpeed"), _maxSimSpeed);
         glBindImageTexture(0, _currentWaveTex, 0, GL_FALSE, 0, GL_READ_WRITE, GL_R32F);
         glBindImageTexture(1, _previousWaveTex, 0, GL_FALSE, 0, GL_READ_ONLY, GL_R32F);
         glBindImageTexture(2, _nextWaveTex, 0, GL_FALSE, 0, GL_WRITE_ONLY, GL_R32F);
@@ -263,6 +267,7 @@ void Visualizer::update() {
         // Swap textures
         std::swap(_currentWaveTex, _previousWaveTex);
         std::swap(_currentWaveTex, _nextWaveTex);
+        }
     }
 
     // Start the ImGui frame
@@ -323,9 +328,9 @@ void Visualizer::AddValueToTexture(double xpos, double ypos) {
 
     // Modify the texture data at the clicked position
     int index = (tex_y * _width + tex_x) * 4;
-    data[index] = 1.0f; // denotes the source is active
+    data[index] = _length; // denotes the source is active
     data[index + 1] = _frequency; // the frequency of the source
-    data[index + 2] = _length; // the length of the source
+    data[index + 2] = 0; // the length of the source
     data[index + 3] = _amplitude; // the amplitude of the source
 
     // Update the texture with the modified data

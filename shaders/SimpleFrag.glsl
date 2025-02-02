@@ -15,5 +15,10 @@ void main() {
     float green = (1.0-(speed/343.0)) + source.r;
     float blue = clamp(-waveHeight, 0.0, 1.0) + source.r;
 
+    if (isnan(waveHeight)) {
+        red = 1.0;
+        green = 1.0;
+        blue = 0.0;
+    }
     FragColor = vec4(red, green, blue, 1.0);
 }
