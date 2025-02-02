@@ -21,11 +21,12 @@ void main() {
     if (source.r > 0)
     {   
         // frequency = source.g;  duration = source.r; amplitude = source.a;
-        source.b += time_step * source.g;
+        source.b += time_step;
         
-        if (source.b >= source.r)
+        if ((source.g * source.b) >= source.r)
         {
             source.r = 0.0;
+            source.b = 0.0;
         }
         
         imageStore(sources, pos, vec4(source.r, source.g, source.b, source.a));
