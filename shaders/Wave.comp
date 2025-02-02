@@ -10,14 +10,15 @@ layout(binding = 4, rgba32f) uniform image2D sources;
 uniform float maxSimSpeed; // set this externally after scanning speedTex
 float dx = 1.0; // in meters per cell
 float cflNumber = 0.4;     // Courant–Friedrichs–Lewy factor
-float time_step = 0.0001;//(cflNumber * dx) / maxSimSpeed;
+float time_step = (cflNumber * dx) / maxSimSpeed;
 
 void main() {
     ivec2 pos = ivec2(gl_GlobalInvocationID.xy);
     vec4 source = imageLoad(sources, pos);
     float center = imageLoad(currentWave, pos).r;
+    float previous = imageLoad(previousWave, pos).r;
 
-    if (source.r > 0.0)
+    if (source.r > 0)
     {   
         // frequency = source.g;  duration = source.r; amplitude = source.a;
         source.b += time_step * source.g;
@@ -29,7 +30,7 @@ void main() {
         
         imageStore(sources, pos, vec4(source.r, source.g, source.b, source.a));
         center = source.a * sin(2.0 * 3.14159265359 * source.g * source.b);
-    }
+    } 
 
     vec2 texSize = imageSize(currentWave);
     ivec2 left = pos + ivec2(-1, 0);
@@ -48,7 +49,6 @@ void main() {
     
     double coeff = (speed * speed) * (time_step * time_step) / (dx *dx);
 
-    float previous = imageLoad(previousWave, pos).r;
 
     double newWave = (2.0 * center) - previous + (coeff * laplacian); // Basic wave equation
     newWave *= 0.999005;
