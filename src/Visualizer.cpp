@@ -241,11 +241,13 @@ void Visualizer::DrawUI() {
 }
 
 void Visualizer::update() {
-    // Check for mouse click
-    if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-        double xpos, ypos;
-        glfwGetCursorPos(_window, &xpos, &ypos);
-        AddValueToTexture(xpos, ypos);
+    // Skip clicks if ImGui has focus
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        if (glfwGetMouseButton(_window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+            double xpos, ypos;
+            glfwGetCursorPos(_window, &xpos, &ypos);
+            AddValueToTexture(xpos, ypos);
+        }
     }
 
     if (_simulationStart)
